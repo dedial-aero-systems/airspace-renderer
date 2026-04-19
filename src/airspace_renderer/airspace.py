@@ -111,7 +111,7 @@ class ArcInputGeometry:
 
 class ArcVInputGeometry:
     REGEX = re.compile(
-        r"^ARCV\((?P<center>[\d NSEW/.]+), (?P<start>[\d NSEW/.]+), (?P<end>[\d NSEW/.]+), (?P<direction>cw|ccw)\)$"
+        r"^ARCV\((?P<center>[\d NSEW/.]+), (?P<direction>cw|ccw)\)$"
     )
 
     @classmethod
@@ -128,10 +128,7 @@ class ArcVInputGeometry:
     ) -> List[Tuple[float, float]]:
         assert previous is not None and subsequent is not None
 
-        # FIXME: Remove start and end parameters and use previous and subsequent instead, requiring them to be vertices.
         center = dms_string_to_point(match["center"])
-        start = dms_string_to_point(match["start"])
-        end = dms_string_to_point(match["end"])
         direction = match["direction"]
         return arc_around_point_between_points(center, previous, subsequent, direction, POINTS_PER_REVOLUTION)
 

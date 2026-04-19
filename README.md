@@ -78,10 +78,11 @@ For example:
 
 An alternative definition of an arc using a start and end vertex in addition to a center point.
 This definition does not require a radius to be specified. The radius is variable and will transition smoothly to meet both
-the start and end vertex. The syntax looks as follows:
+the start and end vertex. The start vertex is the vertex immediately preceding the `ARCV()` geometry and the "end" vertex
+is the one immediately following the `ARCV()` definition. The syntax looks as follows:
 
-- `ARCV(<center>, <start>, <end>, <direction>)`
-- `ARCV(46 54 39 N / 007 32 00 E, 46 53 59 N / 007 34 56 E, 46 54 48 N / 007 34 22 E, cw)`: An arc centered around the vertex `46 54 39 N / 007 32 00 E` starting from vertex `46 53 59 N / 007 34 56 E` arcing to vertex `46 54 48 N / 007 34 22 E` in clockwise direction.
+- `ARCV(<center>, <direction>)`
+- `ARCV(46 54 39 N / 007 32 00 E, cw)`: An arc centered around the vertex `46 54 39 N / 007 32 00 E` starting from the vertex preceding the definition arcing to the vertex following the definition, in clockwise direction.
 
 #### Circles
 

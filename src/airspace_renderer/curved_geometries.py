@@ -50,8 +50,7 @@ def _arc_around_point_grid_metric(
 ) -> List[Tuple[float, float]]:
     azimuth_start_rad = _get_azimuth_rad(center_lv95, start_lv95)
     azimuth_end_rad = _get_azimuth_rad(center_lv95, end_lv95)
-    points = []
-    points.append(_get_edge_point(center_lv95, azimuth_start_rad, radius_m))
+    points = [_get_edge_point(center_lv95, azimuth_start_rad, radius_m)]
     total_angle_rad = _get_total_angle_rad(
         azimuth_start_rad, azimuth_end_rad, direction
     )
@@ -124,7 +123,7 @@ def _get_edge_point(
 
 
 def _get_unit_vector(azimuth_rad: float) -> Tuple[float, float]:
-    return (math.cos(azimuth_rad), math.sin(azimuth_rad))
+    return math.cos(azimuth_rad), math.sin(azimuth_rad)
 
 
 def _nm_to_m(value_nm: float) -> float:

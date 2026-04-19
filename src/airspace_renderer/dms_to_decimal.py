@@ -10,7 +10,7 @@ __all__ = [
 
 
 _REGEX = re.compile(
-    r"^(?P<degLat>\d{2}) (?P<minLat>\d{2}) (?P<secLat>[\d\.]{2,5}) (?P<hemLat>N|S) (/ )?(?P<degLon>\d{3}) (?P<minLon>\d{2}) (?P<secLon>[\d\.]{2,5}) (?P<hemLon>E|W)$"
+    r"^(?P<degLat>\d{2}) (?P<minLat>\d{2}) (?P<secLat>[\d.]{2,5}) (?P<hemLat>[NS]) (/ )?(?P<degLon>\d{3}) (?P<minLon>\d{2}) (?P<secLon>[\d.]{2,5}) (?P<hemLon>[EW])$"
 )
 
 
@@ -32,7 +32,7 @@ def dms_match_to_point(match: re.Match) -> Tuple[float, float]:
     y = dms_to_decimal(
         int(match["degLat"]), int(match["minLat"]), float(match["secLat"])
     ) * (1 if match["hemLat"] == "N" else -1)
-    return (x, y)
+    return x, y
 
 
 def dms_to_decimal(d: float, m: float, s: float) -> float:

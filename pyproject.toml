@@ -5,6 +5,7 @@ description = "A Python library for turning textual description of airspace geom
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ipykernel>=7.2.0",
     "pyproj>=3.7.1",
     "shapely>=2.1.1",
 ]
@@ -19,6 +20,8 @@ dev = [
     "folium>=0.19.7",
     "geopandas>=1.1.0",
     "isort>=6.0.1",
+    "mapclassify>=2.10.0",
+    "matplotlib>=3.10.8",
     "mypy>=1.16.0",
     "ruff>=0.11.10",
     "types-geopandas>=1.0.1.20250601",

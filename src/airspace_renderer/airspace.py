@@ -1,5 +1,6 @@
 import logging
 import re
+import typing
 from typing import Dict, List, Protocol, Tuple, runtime_checkable
 
 import shapely
@@ -14,7 +15,8 @@ from airspace_renderer.dms_to_decimal import (
 
 __all__ = [
     "BorderProvider",
-    "parse_polygon",
+    "InputGeometryType",
+    "render_polygon",
 ]
 
 
@@ -73,7 +75,7 @@ class VertexInputGeometry:
 
 class ArcInputGeometry:
     REGEX = re.compile(
-        r"^ARC\((?P<center>[\d NSEW/\.]+), (?P<radiusNm>[\d\.]+), (?P<direction>cw|ccw)\)$"
+        r"^ARC\((?P<center>[\d NSEW/.]+), (?P<radiusNm>[\d.]+), (?P<direction>cw|ccw)\)$"
     )
 
     @classmethod
@@ -88,6 +90,8 @@ class ArcInputGeometry:
         subsequent: Tuple[float, float] | None,
         border_provider: BorderProvider,
     ) -> List[Tuple[float, float]]:
+        assert previous is not None and subsequent is not None
+
         center = dms_string_to_point(match["center"])
         radius_nm = float(match["radiusNm"])
         direction = match["direction"]
@@ -103,7 +107,7 @@ class ArcInputGeometry:
 
 
 class CircleInputGeometry:
-    REGEX = re.compile(r"^CIRCLE\((?P<center>[\d NSEW/]+), (?P<radiusNm>[\d\.]+)\)$")
+    REGEX = re.compile(r"^CIRCLE\((?P<center>[\d NSEW/]+), (?P<radiusNm>[\d.]+)\)$")
 
     @classmethod
     def matches(cls, definition: str) -> re.Match | None:
@@ -131,7 +135,7 @@ class CircleInputGeometry:
 
 
 class BorderInputGeometry:
-    REGEX = re.compile(r"^BORDER\((?P<borderName>[A-Z\+]+)(?P<invert>, I)?\)$")
+    REGEX = re.compile(r"^BORDER\((?P<borderName>[A-Z+]+)(?P<invert>, I)?\)$")
 
     @classmethod
     def matches(cls, definition: str) -> re.Match | None:
@@ -145,6 +149,8 @@ class BorderInputGeometry:
         subsequent: Tuple[float, float] | None,
         border_provider: BorderProvider,
     ) -> List[Tuple[float, float]]:
+        assert previous is not None and subsequent is not None
+
         border = border_provider.get_border(match["borderName"])
         invert = match["invert"] is not None
 
@@ -168,7 +174,10 @@ class BorderInputGeometry:
         return previous is not None and subsequent is not None
 
 
-DEFAULT_INPUT_GEOMETRY_TYPES: Dict[str, InputGeometry] = {
+type Vertex = Tuple[float, float]
+type InputGeometryType = typing.Literal['vertex'] | typing.Literal['circle'] | typing.Literal['arc'] | typing.Literal['border']
+
+DEFAULT_INPUT_GEOMETRY_TYPES: Dict[InputGeometryType, InputGeometry] = {
     "vertex": VertexInputGeometry,
     "circle": CircleInputGeometry,
     "arc": ArcInputGeometry,
@@ -176,17 +185,17 @@ DEFAULT_INPUT_GEOMETRY_TYPES: Dict[str, InputGeometry] = {
 }
 
 
-def parse_polygon(
+def render_polygon(
     geometry: str,
     border_provider: BorderProvider,
-    input_geometry_overrides: Dict[str, InputGeometry] | None = None,
-) -> shapely.Polygon:
+    input_geometry_overrides: Dict[InputGeometryType, InputGeometry] | None = None,
+) -> Tuple[shapely.Polygon, List[InputGeometryType]]:
     log.debug(f'parsing geometry "{geometry}"')
     geometry_components: List[str] = geometry.split(" - ")
-    input_geometry_types: List[str | None] = [
+    input_geometry_types: List[InputGeometryType | None] = [
         None for _ in range(len(geometry_components))
     ]
-    vertices: List[List[Tuple[float, float]] | None] = [
+    vertices: List[List[Vertex] | None] = [
         None for _ in range(len(geometry_components))
     ]
     component_indices_to_process = list(range(len(geometry_components)))
@@ -209,6 +218,7 @@ def parse_polygon(
                 input_geometry_overrides,
             )
             if component_vertices is not None:
+                assert input_geometry_type is not None
                 component_indices_to_process.remove(i)
                 input_geometry_types[i] = input_geometry_type
                 vertices[i] = component_vertices
@@ -217,7 +227,8 @@ def parse_polygon(
             raise RuntimeError(
                 f"no progress made with {len_before_iteration} components remaining"
             )
-    return shapely.Polygon(shell=_flatten_vertices(vertices, input_geometry_types))
+    flattened_vertices, flattened_input_geometry_types = _flatten_vertices(vertices, input_geometry_types)
+    return shapely.Polygon(shell=flattened_vertices), flattened_input_geometry_types
 
 
 def _parse_polygon_component(
@@ -225,8 +236,8 @@ def _parse_polygon_component(
     previous: Tuple[float, float] | None,
     subsequent: Tuple[float, float] | None,
     border_provider: BorderProvider,
-    input_geometry_overrides: Dict[str, InputGeometry] | None,
-) -> Tuple[str, List[Tuple[float, float]]] | Tuple[None, None]:
+    input_geometry_overrides: Dict[InputGeometryType, InputGeometry] | None,
+) -> Tuple[InputGeometryType, List[Tuple[float, float]]] | Tuple[None, None]:
     log.debug(
         f'parsing component "{component}" with previous "{previous}" and subsequent "{subsequent}"'
     )
@@ -247,34 +258,23 @@ def _parse_polygon_component(
     )
 
 
-def _flatten_vertices(vertices, input_geometry_types):
-    flattened = []
-    border_entry_point_indices = _get_border_entry_point_indices(input_geometry_types)
-    for i, v in enumerate(vertices):
-        # border entry vertices are already part of the border segment linestring
-        if i not in border_entry_point_indices:
-            flattened.extend(v)
-    return flattened
-
-
-def _get_border_entry_point_indices(input_geometry_types):
-    border_indices = [
-        i
-        for i in range(len(input_geometry_types))
-        if input_geometry_types[i] == "border"
-    ]
-    border_entry_point_indices = set()
-    for b in border_indices:
-        border_entry_point_indices.add(b - 1)
-        border_entry_point_indices.add(b + 1)
-    for bi in border_entry_point_indices:
-        assert input_geometry_types[bi] == "vertex"
-    return border_entry_point_indices
+def _flatten_vertices(segments: List[List[Vertex] | None], input_geometry_types: List[InputGeometryType | None]):
+    vertices: List[Vertex] = []
+    vertex_input_geometry_types: List[InputGeometryType] = []
+    for i, s in enumerate(segments):
+        if not s:
+            continue
+        input_geometry_type = input_geometry_types[i]
+        assert input_geometry_type is not None
+        vertices.extend(s)
+        vertex_input_geometry_types.extend([input_geometry_type for _ in range(len(s))])
+    assert len(vertices) == len(vertex_input_geometry_types), f"{len(vertices)} != {len(vertex_input_geometry_types)}"
+    return vertices, vertex_input_geometry_types
 
 
 def _get_input_geometry_types(
-    input_geometry_overrides: Dict[str, InputGeometry] | None,
-) -> Dict[str, InputGeometry]:
+    input_geometry_overrides: Dict[InputGeometryType, InputGeometry] | None,
+) -> Dict[InputGeometryType, InputGeometry]:
     if not input_geometry_overrides:
         return DEFAULT_INPUT_GEOMETRY_TYPES
     return {**DEFAULT_INPUT_GEOMETRY_TYPES, **input_geometry_overrides}

@@ -1,4 +1,4 @@
-# airspace_renderer
+# airspace-renderer
 
 A Python library for turning textual description of airspace geometries into machine-readable geospatial data.
 
@@ -24,7 +24,7 @@ these expressions into a `shapely.Polygon`.
 ## Why?
 
 I have been wanting to build my own EFB/flight planning app for Switzerland for a while. However, obtaining the official aeronautical information
-for Switzerland (i.e. airspaces, VFR reporting points, navaids, frequencies, etc.) in a machine-readable format has turned out to be nearly impossible.
+for Switzerland (i.e. airspace, VFR reporting points, navaids, frequencies, etc.) in a machine-readable format has turned out to be nearly impossible.
 So, out of frustration, I decided to build my own dataset, which is where this tool comes into play.
 
 ## Getting started
@@ -85,7 +85,7 @@ As it is a closed geometry, it does not connect to any other components, and it 
 #### Border References
 
 Arguably the most complex and frustrating topic of airspace definitions. The geometry immediately before and after a border component
-must be a vertex. These vertices are the border entry points and they are used to determine, which segment of border is to be included
+must be a vertex. These vertices are the border entry points, and they are used to determine, which segment of border is to be included
 in the rendered geometry. Using border geometries requires passing a _border provider_ to the `parse_polygon` method.
 A border provider is an object containing a method `get_border()` which accepts a single string argument containing the border name
 and returns a `shapely.LineString` which defines the border.

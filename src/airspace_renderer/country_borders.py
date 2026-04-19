@@ -46,12 +46,15 @@ def get_border_segment(
     assert _points_equal(segment_point_coords[-1], border_points[end_point_index]), (
         f"{segment_point_coords[-1]=} {border_points[end_point_index]}="
     )
-    assert len(segment_point_coords), "border segment must not be empty"
+    segment_point_coords = segment_point_coords[1:-1]
+    # FIXME: This is a horrible hack to avoid having to deal with line segments consisting of a single point.
+    if len(segment_point_coords) == 1:
+        log.warning(f"duplicating vertex {segment_point_coords[0]} to avoid empty border segment")
+        segment_point_coords = (segment_point_coords[0], segment_point_coords[0])
     return shapely.LineString(segment_point_coords)
 
 
 def _extract_points_in_range(start_index, end_index, points):
-    selected_points = []
     if end_index >= start_index:
         selected_points = [
             list(points[i].coords)[0] for i in range(start_index, end_index + 1)
@@ -67,7 +70,6 @@ def _extract_points_in_range(start_index, end_index, points):
 
 
 def _extract_points_outside_range(start_index, end_index, points):
-    selected_points = []
     if start_index >= end_index:
         selected_points = [
             list(points[i].coords)[0] for i in range(end_index, start_index + 1)

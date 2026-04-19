@@ -6,7 +6,7 @@ from typing import Dict, List, Protocol, Tuple, runtime_checkable
 import shapely
 
 from airspace_renderer.country_borders import get_border_segment
-from airspace_renderer.curved_geometries import arc_around_point, circle_around_point
+from airspace_renderer.curved_geometries import arc_around_point, circle_around_point, arc_around_point_between_points
 from airspace_renderer.dms_to_decimal import (
     dms_match_to_point,
     dms_string_to_point,
@@ -106,6 +106,40 @@ class ArcInputGeometry:
         return previous is not None and subsequent is not None
 
 
+class ArcVInputGeometry:
+    REGEX = re.compile(
+        r"^ARCV\((?P<center>[\d NSEW/.]+), (?P<start>[\d NSEW/.]+), (?P<end>[\d NSEW/.]+), (?P<direction>cw|ccw)\)$"
+    )
+
+    @classmethod
+    def matches(cls, definition: str) -> re.Match | None:
+        return cls.REGEX.fullmatch(definition)
+
+    @classmethod
+    def parse(
+        cls,
+        match: re.Match,
+        previous: Tuple[float, float] | None,
+        subsequent: Tuple[float, float] | None,
+        border_provider: BorderProvider,
+    ) -> List[Tuple[float, float]]:
+        assert previous is not None and subsequent is not None
+
+        center = dms_string_to_point(match["center"])
+        start = dms_string_to_point(match["start"])
+        end = dms_string_to_point(match["end"])
+        direction = match["direction"]
+        return arc_around_point_between_points(center, previous, subsequent, direction, 100)
+
+    @classmethod
+    def can_process(
+        cls,
+        previous: Tuple[float, float] | None,
+        subsequent: Tuple[float, float] | None,
+    ) -> bool:
+        return previous is not None and subsequent is not None
+
+
 class CircleInputGeometry:
     REGEX = re.compile(r"^CIRCLE\((?P<center>[\d NSEW/]+), (?P<radiusNm>[\d.]+)\)$")
 
@@ -175,12 +209,13 @@ class BorderInputGeometry:
 
 
 type Vertex = Tuple[float, float]
-type InputGeometryType = typing.Literal['vertex'] | typing.Literal['circle'] | typing.Literal['arc'] | typing.Literal['border']
+type InputGeometryType = typing.Literal['vertex'] | typing.Literal['circle'] | typing.Literal['arc'] | typing.Literal['arcv'] | typing.Literal['border']
 
 DEFAULT_INPUT_GEOMETRY_TYPES: Dict[InputGeometryType, InputGeometry] = {
     "vertex": VertexInputGeometry,
     "circle": CircleInputGeometry,
     "arc": ArcInputGeometry,
+    "arcv": ArcVInputGeometry,
     "border": BorderInputGeometry,
 }
 

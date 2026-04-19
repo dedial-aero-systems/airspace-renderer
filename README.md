@@ -64,7 +64,7 @@ A vertex is defined as a WGS-84 coordinate in DMS format and lat/lon order. The 
 
 Note that the longitude degrees require zero-padding to three digits.
 
-#### Arcs
+#### Arcs around a center point
 
 An arc is defined by a center point (in vertex format), a radius in nautical miles and a direction, either clockwise or counter-clockwise.
 For example:
@@ -73,6 +73,15 @@ For example:
 - `ARC(47 47 30 N / 009 14 00 E, 5.02, ccw)`: An arc of radius 5.02 nautical miles, centered around the vertex `47 47 30 N 009 14 00 E` in counter-clockwise direction.
 
 **The geometry immediately before and after an arc component must be a vertex**.
+
+#### Arcs around a center point between two vertices
+
+An alternative definition of an arc using a start and end vertex in addition to a center point.
+This definition does not require a radius to be specified. The radius is variable and will transition smoothly to meet both
+the start and end vertex. The syntax looks as follows:
+
+- `ARCV(<center>, <start>, <end>, <direction>)`
+- `ARCV(46 54 39 N / 007 32 00 E, 46 53 59 N / 007 34 56 E, 46 54 48 N / 007 34 22 E, cw)`: An arc centered around the vertex `46 54 39 N / 007 32 00 E` starting from vertex `46 53 59 N / 007 34 56 E` arcing to vertex `46 54 48 N / 007 34 22 E` in clockwise direction.
 
 #### Circles
 

@@ -19,7 +19,7 @@ def arc_around_point(
         end_wgs84: Tuple[float, float],
         radius_nm: float,
         direction: Literal["cw", "ccw"],
-        intermediate_points: int,
+        intermediate_points_per_revolution: int,
 ):
     center_lv95 = P_LV95(center_wgs84[0], center_wgs84[1])
     start_lv95 = P_LV95(start_wgs84[0], start_wgs84[1])
@@ -31,7 +31,7 @@ def arc_around_point(
         end_lv95,
         radius_m,
         direction,
-        intermediate_points,
+        intermediate_points_per_revolution,
     )
     return [
         P_LV95.transform(
@@ -72,7 +72,7 @@ def _arc_around_point_grid_metric(
         end_lv95: Tuple[float, float],
         radius_m: float,
         direction: Literal["cw"] | Literal["ccw"],
-        intermediate_points: int,
+        intermediate_points_per_full_revolution: int,
 ) -> List[Tuple[float, float]]:
     azimuth_start_rad = _get_azimuth_rad(center_lv95, start_lv95)
     azimuth_end_rad = _get_azimuth_rad(center_lv95, end_lv95)
@@ -80,6 +80,7 @@ def _arc_around_point_grid_metric(
     total_angle_rad = _get_total_angle_rad(
         azimuth_start_rad, azimuth_end_rad, direction
     )
+    intermediate_points = round(intermediate_points_per_full_revolution / (2 * math.pi) * total_angle_rad)
     angle_increment_rad = total_angle_rad / (1 + intermediate_points)
     angle_rad = azimuth_start_rad
     for _ in range(intermediate_points):
@@ -94,7 +95,7 @@ def _arc_around_point_grid_metric_variable_radius(
         start_lv95: Tuple[float, float],
         end_lv95: Tuple[float, float],
         direction: Literal["cw"] | Literal["ccw"],
-        intermediate_points: int,
+        intermediate_points_per_full_revolution: int,
 ) -> List[Tuple[float, float]]:
     azimuth_start_rad = _get_azimuth_rad(center_lv95, start_lv95)
     azimuth_end_rad = _get_azimuth_rad(center_lv95, end_lv95)
@@ -104,6 +105,7 @@ def _arc_around_point_grid_metric_variable_radius(
         azimuth_start_rad, azimuth_end_rad, direction
     )
     total_radius_delta_m = radius_end_m - radius_start_m
+    intermediate_points = round(intermediate_points_per_full_revolution / (2 * math.pi) * total_angle_rad)
     angle_increment_rad = total_angle_rad / (1 + intermediate_points)
     radius_increment_m = total_radius_delta_m / (1 + intermediate_points)
     angle_rad = azimuth_start_rad

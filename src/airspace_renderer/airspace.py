@@ -23,6 +23,9 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
+POINTS_PER_REVOLUTION = 25
+
+
 @runtime_checkable
 class BorderProvider(Protocol):
     def get_border(self, border_name: str) -> shapely.LineString: ...
@@ -95,7 +98,7 @@ class ArcInputGeometry:
         center = dms_string_to_point(match["center"])
         radius_nm = float(match["radiusNm"])
         direction = match["direction"]
-        return arc_around_point(center, previous, subsequent, radius_nm, direction, 100)
+        return arc_around_point(center, previous, subsequent, radius_nm, direction, POINTS_PER_REVOLUTION)
 
     @classmethod
     def can_process(
@@ -125,11 +128,12 @@ class ArcVInputGeometry:
     ) -> List[Tuple[float, float]]:
         assert previous is not None and subsequent is not None
 
+        # FIXME: Remove start and end parameters and use previous and subsequent instead, requiring them to be vertices.
         center = dms_string_to_point(match["center"])
         start = dms_string_to_point(match["start"])
         end = dms_string_to_point(match["end"])
         direction = match["direction"]
-        return arc_around_point_between_points(center, previous, subsequent, direction, 100)
+        return arc_around_point_between_points(center, previous, subsequent, direction, POINTS_PER_REVOLUTION)
 
     @classmethod
     def can_process(
@@ -157,7 +161,7 @@ class CircleInputGeometry:
     ) -> List[Tuple[float, float]]:
         center = dms_string_to_point(match["center"])
         radius_nm = float(match["radiusNm"])
-        return circle_around_point(center, radius_nm, 100)
+        return circle_around_point(center, radius_nm, POINTS_PER_REVOLUTION)
 
     @classmethod
     def can_process(
